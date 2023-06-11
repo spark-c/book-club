@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 import uuid
 
 
@@ -55,7 +56,7 @@ class Meeting(models.Model):
         primary_key=True, default=uuid.uuid4, editable=False
     )
     meeting_number = models.SmallIntegerField(default=1)
-    date = models.DateTimeField()
+    date = models.DateTimeField(default=timezone.now)
     book_section = models.CharField(max_length=50)
     notes = models.TextField(max_length=1000)
     transcription = models.TextField(blank=True, default="")
@@ -74,7 +75,7 @@ class Post(models.Model):
     )
     title = models.CharField(max_length=100, blank=True, default="<Untitled>")
     content = models.CharField(max_length=10_000)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(default=timezone.now)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(
         Book, on_delete=models.SET_NULL, null=True, default=None
