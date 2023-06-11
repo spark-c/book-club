@@ -28,6 +28,7 @@ class Book(models.Model):
     title = models.CharField(max_length=100)
     author = models.CharField(max_length=50)
     summary = models.TextField(max_length=1000, blank=True, default="")
+    accepted = models.BooleanField(default=False)
     complete = models.BooleanField(default=False)
     tags = models.ManyToManyField("Tag")
     proposer = models.ForeignKey(
