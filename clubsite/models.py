@@ -76,7 +76,7 @@ class Post(models.Model):
     title = models.CharField(max_length=100, blank=True, default="<Untitled>")
     content = models.CharField(max_length=10_000)
     timestamp = models.DateTimeField(default=timezone.now)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     book = models.ForeignKey(
         Book, on_delete=models.SET_NULL, null=True, default=None
     )
@@ -85,4 +85,4 @@ class Post(models.Model):
     )
 
     def __str__(self) -> str:
-        return f"Post by {self.author.username}: {self.title}"
+        return f"Post by {self.author.username if self.author else '(No Author)'}: {self.title}"
