@@ -1,7 +1,10 @@
 import pytest
-from clubsite.models import User, Book, Tag
+from django.utils.timezone import now
 import copy
 from typing import cast
+from clubsite.models import (
+    User, Book, Tag, Meeting
+)
 
 
 @pytest.mark.django_db
@@ -162,9 +165,22 @@ class TestBookModel:
         book.tags.remove(tag)
         assert book.tags.count() == 1
 
-    # def test_add_readers(self):
-    #     pass
+    def test_add_readers(self):
+        b = self.make_book(self.SIMPLE_BOOK)
+        b.save()
 
+        u1 = TestUserModel.make_user(TestUserModel(), TestUserModel.SIMPLE_USER)
+        u2 = TestUserModel.make_user(TestUserModel(), TestUserModel.SIMPLE_ADMIN)
+        u1.save()
+        u2.save()
+
+        b.readers.add(u1, u2)
+        b.save()
+
+        book = Book.objects.first()
+        assert book is not None
+        assert book.readers.count() == 2
+        assert book.readers.get(role=TestUserModel.SIMPLE_ADMIN["role"])
     
     def test_simple_update_book(self):
         b = self.make_book(self.SIMPLE_BOOK)
@@ -175,3 +191,126 @@ class TestBookModel:
         c.save()
 
         assert Book.objects.all()[0].title == "New Title"
+
+
+@pytest.mark.django_db
+class TestTagModel:
+
+    def test_create_tag(self):
+        name = "Feminism"
+        t = Tag(name=name)
+        t.save()
+
+        tag = Tag.objects.first()
+        assert tag is not None
+        assert tag.name == name
+
+    def test_create_two_tags(self):
+        name1, name2 = ["Feminism", "Greed"]
+        t1, t2 = [Tag(name=name1), Tag(name=name2)]
+        t1.save()
+        t2.save()
+
+        tags = Tag.objects.all()
+        assert tags[0] is not None and tags[1] is not None
+        assert len(tags) == 2
+        assert tags[1].name == name2
+
+
+@pytest.mark.django_db
+class TestMeetingModel:
+    SIMPLE_MEETING = {
+        "meeting_number": 2,
+        "date": now(),
+        "book_section": "Chapter 1-5",
+        "notes": "There was a discussion today.\n\n Went well.",
+        "transcription": "",
+        "transcription_url": ""
+    }
+
+    def make_meeting(self, template):
+        meeting = Meeting(
+            meeting_number=template["meeting_number"],
+            date=template["date"],
+            book_section=template["book_section"],
+            notes=template["notes"]
+        )
+        return meeting
+    
+    def test_create_meeting(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
+
+        meeting = Meeting.objects.first()
+        assert meeting is not None
+        assert meeting.meeting_number == 2
+
+    def test_add_attendees(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
+
+        um = TestUserModel
+        u1, u2 = [
+            um.make_user(um(), um.SIMPLE_USER),
+            um.make_user(um(), um.SIMPLE_ADMIN)
+        ]
+        u1.save()
+        u2.save()
+
+        meeting = Meeting.objects.first()
+        assert meeting is not None
+        meeting.attendees.add(u1, u2)
+        meeting.save()
+
+        meeting2 = Meeting.objects.first()
+        assert meeting2 is not None
+        assert meeting2.attendees.count() == 2
+
+    def test_remove_attendee(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
+
+        um = TestUserModel
+        u1, u2 = [
+            um.make_user(um(), um.SIMPLE_USER),
+            um.make_user(um(), um.SIMPLE_ADMIN)
+        ]
+        u1.save()
+        u2.save()
+
+        meeting = Meeting.objects.first()
+        assert meeting is not None
+        meeting.attendees.add(u1, u2)
+        meeting.save()
+
+        meeting2 = Meeting.objects.first()
+        assert meeting2 is not None
+        u_rm = meeting.attendees.get(role=User.USER)
+        meeting.attendees.remove(u_rm)
+        meeting.save()
+
+        meeting3 = Meeting.objects.first()
+        assert meeting3 is not None
+        assert meeting.attendees.count() == 1
+
+    def test_add_book(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
+
+        bm = TestBookModel
+        b = bm.make_book(bm(), bm.SIMPLE_BOOK)
+        b.save()
+
+        assert m is not None
+        m.book = b
+        m.save()
+
+        meeting = Meeting.objects.first()
+        assert meeting is not None and meeting.book is not None
+        assert meeting.book.title == bm.SIMPLE_BOOK["title"]
+
+    # def test_remove_book(self):
+    #     pass
+
+    # def test_update_meeting(self):
+    #     pass
