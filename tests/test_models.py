@@ -309,8 +309,37 @@ class TestMeetingModel:
         assert meeting is not None and meeting.book is not None
         assert meeting.book.title == bm.SIMPLE_BOOK["title"]
 
-    # def test_remove_book(self):
-    #     pass
+    def test_remove_book(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
 
-    # def test_update_meeting(self):
-    #     pass
+        bm = TestBookModel
+        b = bm.make_book(bm(), bm.SIMPLE_BOOK)
+        b.save()
+
+        assert m is not None
+        m.book = b
+        m.save()
+
+        meeting = Meeting.objects.first()
+        assert meeting is not None and meeting.book is not None
+        meeting.book = None
+        meeting.save()
+
+        meeting2 = Meeting.objects.first()
+        assert meeting2 is not None
+        assert meeting2.book is None
+
+    def test_update_meeting(self):
+        m = self.make_meeting(self.SIMPLE_MEETING)
+        m.save()
+
+        t_url = "https://api.google.com/link"
+        meeting = Meeting.objects.first()
+        assert meeting is not None
+        meeting.transcription_url = t_url
+        meeting.save()
+
+        meeting2 = Meeting.objects.first()
+        assert meeting2 is not None
+        assert meeting2.transcription_url == t_url
