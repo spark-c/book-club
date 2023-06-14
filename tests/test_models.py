@@ -1,9 +1,10 @@
 import pytest
 from django.utils.timezone import now
+from faker import Faker
 import copy
 from typing import cast
 from clubsite.models import (
-    User, Book, Tag, Meeting
+    User, Book, Tag, Meeting, Post
 )
 
 
@@ -343,3 +344,89 @@ class TestMeetingModel:
         meeting2 = Meeting.objects.first()
         assert meeting2 is not None
         assert meeting2.transcription_url == t_url
+
+
+@pytest.mark.django_db
+class TestPostModel:
+    SIMPLE_POST = {
+        "title": "A Post Title",
+        "content": "A long content\nThat has multiple\n\nLines",
+        "timestamp": now()
+    }
+
+    def make_post(self, template):
+        post = Post(
+            title=template["title"],
+            content=template["content"],
+            timestamp=template["timestamp"]
+        )
+        return post
+    
+    def test_create_post(self):
+        p = self.make_post(self.SIMPLE_POST)
+        p.save()
+
+        post = Post.objects.first()
+        assert post is not None
+        assert post.title == self.SIMPLE_POST["title"]
+
+    def test_delete_post(self):
+        p = self.make_post(self.SIMPLE_POST)
+        p.save()
+
+        post = Post.objects.first()
+        assert post is not None
+        post.delete()
+        assert Post.objects.all().count() == 0
+
+    def test_add_author(self):
+        p = self.make_post(self.SIMPLE_POST)
+        p.save()
+
+        um = TestUserModel
+        u = um.make_user(um(), um.SIMPLE_USER)
+        u.save()
+
+        p.author = u
+        p.save()
+
+        post = Post.objects.first()
+        assert post is not None and post.author is not None
+        assert post.author.username == um.SIMPLE_USER["username"]
+
+    def test_remove_author(self):
+        p = self.make_post(self.SIMPLE_POST)
+        p.save()
+
+        um = TestUserModel
+        u = um.make_user(um(), um.SIMPLE_USER)
+        u.save()
+
+        p.author = u
+        p.save()
+
+        post = Post.objects.first()
+        assert post is not None and post.author is not None
+        post.author = None
+        post.save()
+
+        # check we didn't delete user entirely
+        assert User.objects.all().count() == 1
+
+        post2 = Post.objects.first()
+        assert post2 is not None
+        assert post2.author is None
+
+    def test_long_content(self):
+        fake = Faker()
+        t = fake.text(max_nb_chars=9000)
+
+        long_post = copy.deepcopy(self.SIMPLE_POST)
+        long_post["content"] = t
+        p = self.make_post(long_post)
+        p.save()
+
+        post = Post.objects.first()
+        assert post is not None
+        assert len(post.content) > 7000
+
